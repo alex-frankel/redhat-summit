@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmName": {
+      "value": "adotfrank-rh"
+    },
+    "adminUsername": {
+      "value": "adotfrank"
+    },
+    "adminPasswordOrSSHKey": {
+      "value": "Adotfrank12345!"
+    },
+    "jbossEAPUserName": {
+      "value": "adotfrank"
+    },
+    "jbossEAPPassword": {
+      "value": "Adotfrank12345!"
+    },
+    "rhsmUserName": {
+      "value": "alfran-msft"
+    },
+    "rhsmPassword": {
+      "value": ""
+    },
+    "rhsmPoolEAP": {
+      "value": "8a85f99c7b2b33d0017b378a816f759f"
+    }
+  }
+}
