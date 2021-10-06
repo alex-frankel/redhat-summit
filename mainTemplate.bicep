@@ -43,6 +43,9 @@ param storageAccountKind string = 'Storage'
 @description('Determines whether or not a new virtual network should be provisioned.')
 param virtualNetworkNewOrExisting string = 'new'
 
+@description('Name of the resource group for the existing virtual network')
+param virtualNetworkResourceGroupName string = resourceGroup().name
+
 @description('Name of the virtual network')
 param virtualNetworkName string = 'VirtualNetwork'
 
@@ -56,9 +59,6 @@ param subnetName string = 'default'
 
 @description('Subnet prefix of the virtual network')
 param subnetPrefix string = '10.0.0.0/24'
-
-@description('Name of the resource group for the existing virtual network')
-param virtualNetworkResourceGroupName string = resourceGroup().name
 
 @description('User name for JBoss EAP Manager')
 param jbossEAPUserName string
@@ -80,7 +80,7 @@ param rhsmPassword string
 param rhsmPoolEAP string
 
 var nicName = '${uniqueString(resourceGroup().id)}-nic'
-var nsgName = 'jbosseap-nsg'
+var networkSecurityGroupName_var = 'jbosseap-nsg'
 var bootDiagnosticsCheck = ((storageNewOrExisting == 'new') && (bootDiagnostics == 'on'))
 var linuxConfiguration = {
   disablePasswordAuthentication: true
@@ -104,7 +104,7 @@ resource stg 'Microsoft.Storage/storageAccounts@2019-06-01' = if (bootDiagnostic
 }
 
 resource nsg 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
-  name: nsgName
+  name: networkSecurityGroupName_var
   location: location
 }
 
@@ -127,6 +127,23 @@ resource vnet 'Microsoft.Network/virtualNetworks@2019-11-01' = if (virtualNetwor
       }
     ]
   }
+
+  // second declaration is only for referencing later on
+  resource declaredSubnet 'subnets' existing = {
+    name: subnetName
+  }
+}
+
+resource pip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+  name: 'pip-for-${vmName}'
+  location: location
+  sku: {
+    name: 'Basic'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Dynamic'
+    publicIPAddressVersion: 'IPv4'
+  }
 }
 
 resource nic 'Microsoft.Network/networkInterfaces@2019-11-01' = {
@@ -142,7 +159,11 @@ resource nic 'Microsoft.Network/networkInterfaces@2019-11-01' = {
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           subnet: {
-            id: resourceId(virtualNetworkResourceGroupName, 'Microsoft.Network/virtualNetworks/subnets/', vnet.name, subnetName)
+            // this is very ugly...
+            id: virtualNetworkNewOrExisting == 'new' ? vnet::declaredSubnet.id : resourceId(virtualNetworkResourceGroupName, vnet::declaredSubnet.type, virtualNetworkName, subnetName)
+          }
+          publicIPAddress: {
+            id: pip.id
           }
         }
       }
@@ -161,7 +182,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2019-12-01' = {
       computerName: vmName
       adminUsername: adminUsername
       adminPassword: adminPasswordOrSSHKey
-      linuxConfiguration: ((authenticationType == 'password') ? json('null') : linuxConfiguration)
+      linuxConfiguration: ((authenticationType == 'password') ? json('null') : linuxConfiguration) // todo - check if "null" is allowed
     }
     storageProfile: {
       imageReference: {
@@ -183,16 +204,17 @@ resource vm 'Microsoft.Compute/virtualMachines@2019-12-01' = {
         }
       ]
     }
-    // todo - is storage URI in properties?
-    diagnosticsProfile: ((bootDiagnostics == 'on') ? json('{"bootDiagnostics": {"enabled": true,"storageUri": "https://${stg.name}.blob.core.windows.net"}}') : json('{"bootDiagnostics": {"enabled": false}}'))
+    // todo - check if the endpoint can be dynamic
+    diagnosticsProfile: ((bootDiagnostics == 'on') ? json('{"bootDiagnostics": {"enabled": true,"storageUri": "https://${storageAccountName}.blob.core.windows.net"}}') : json('{"bootDiagnostics": {"enabled": false}}'))
   }
   dependsOn: [
     nsg
   ]
 }
 
-resource jbosseap_setup 'Microsoft.Compute/virtualMachines/extensions@2019-12-01' = {
+resource jboss_setup 'Microsoft.Compute/virtualMachines/extensions@2021-04-01' = {
   parent: vm
+
   name: 'jbosseap-setup-extension'
   location: location
   properties: {
@@ -200,14 +222,10 @@ resource jbosseap_setup 'Microsoft.Compute/virtualMachines/extensions@2019-12-01
     type: 'CustomScript'
     typeHandlerVersion: '2.0'
     autoUpgradeMinorVersion: true
-    settings: {
-      script: loadTextContent('scripts/jbosseap-setup-redhat.sh')
-      // fileUris: [
-      //   uri(artifactsLocation, 'scripts/jbosseap-setup-redhat.sh${artifactsLocationSasToken}')
-      // ]
-    }
     protectedSettings: {
-      commandToExecute: 'sh jbosseap-setup-redhat.sh \'${jbossEAPUserName}\' \'${jbossEAPPassword}\' \'${rhsmUserName}\' \'${rhsmPassword}\' \'${rhsmPoolEAP}\''
+      // todo - still in progress, but seems to work?!
+      commandToExecute: 'echo \'${loadFileAsBase64('scripts/jbosseap-setup-redhat.sh')}\' | base64 -d > decodedScript.sh && chmod +x ./decodedScript.sh && ./decodedScript.sh \'${jbossEAPUserName}\' \'${jbossEAPPassword}\' \'${rhsmUserName}\' \'${rhsmPassword}\' \'${rhsmPoolEAP}\''
     }
   }
 }
+
