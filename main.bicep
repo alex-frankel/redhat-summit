@@ -1,5 +1,10 @@
+/*
+ORIGINAL QUICKSTART:
+https://github.com/Azure/azure-quickstart-templates/tree/master/application-workloads/jboss/jboss-eap-standalone-rhel
+*/
+
 @description('Name for the Virtual Machine.')
-param vmName string
+param baseName string
 
 @description('Linux VM user account name')
 param adminUsername string
@@ -36,7 +41,7 @@ param rhsmPoolEAP string
 module deployNetworking 'modules/networking.bicep' = {
   name: 'deployNetworking'
   params: {
-    vmName: vmName
+    baseName: baseName
     virtualNetworkNewOrExisting: virtualNetworkNewOrExisting
     virtualNetworkResourceGroupName: virtualNetworkResourceGroupName
   }
@@ -53,6 +58,6 @@ module deployVm 'modules/vm.bicep' = {
     rhsmPassword: rhsmPassword
     rhsmPoolEAP: rhsmPoolEAP
     rhsmUserName: rhsmUserName
-    vmName: vmName
+    vmName: baseName
   }
 }

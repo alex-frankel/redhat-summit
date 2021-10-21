@@ -3,28 +3,28 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "vmName": {
-      "value": "adotfrank-rh"
+      "value": "foo-vm"
     },
     "adminUsername": {
-      "value": "adotfrank"
+      "value": "<REPLACE-ME>"
     },
     "adminPasswordOrSSHKey": {
-      "value": "Adotfrank12345!"
+      "value": "<REPLACE-ME>"
     },
     "jbossEAPUserName": {
-      "value": "adotfrank"
+      "value": "<REPLACE-ME>"
     },
     "jbossEAPPassword": {
-      "value": "Adotfrank12345!"
+      "value": "<REPLACE-ME>"
     },
     "rhsmUserName": {
-      "value": "alfran-msft"
+      "value": "<REPLACE-ME>"
     },
     "rhsmPassword": {
-      "value": ""
+      "value": "<REPLACE-ME>"
     },
     "rhsmPoolEAP": {
-      "value": "8a85f99c7b2b33d0017b378a816f759f"
+      "value": "<REPLACE-ME>"
     }
   }
 }

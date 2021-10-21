@@ -20,7 +20,7 @@ param subnetName string = 'default'
 param subnetPrefix string = '10.0.0.0/24'
 
 @description('Name for the Virtual Machine.')
-param vmName string
+param baseName string
 
 resource vnet 'Microsoft.Network/virtualNetworks@2019-11-01' = if (virtualNetworkNewOrExisting == 'new') {
   name: virtualNetworkName
@@ -109,12 +109,26 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
           direction: 'Inbound'
         }
       }
+      {
+        name: 'web9990'
+        properties: {
+          description: 'Allow WEB Http'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '9990'
+          sourceAddressPrefix: 'Internet'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 104
+          direction: 'Inbound'
+        }
+      }
     ]
   }
 }
 
 resource pip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
-  name: 'pip-for-${vmName}'
+  name: 'pip-for-${baseName}'
   location: location
   sku: {
     name: 'Basic'

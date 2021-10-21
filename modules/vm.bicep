@@ -104,3 +104,4 @@ resource jboss_setup 'Microsoft.Compute/virtualMachines/extensions@2021-04-01' =
 }
 
 // && echo \'${loadFileAsBase64('../scripts/JBoss-EAP_on_Azure.war')}\' | base64 -d > decodedWar.sh 
+// && chmod +x ./JBoss-EAP_on_Azure.war
